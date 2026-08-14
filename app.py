@@ -2,17 +2,10 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 
-from database import (
-    create_table,
-    add_customer,
-    get_customers,
-    delete_customer
-)
 
-
-# =========================
-# CẤU HÌNH TRANG
-# =========================
+# ==========================================
+# CẤU HÌNH
+# ==========================================
 
 st.set_page_config(
     page_title="Quản lý khách hàng",
@@ -21,18 +14,23 @@ st.set_page_config(
 )
 
 
-# =========================
-# TẠO DATABASE / TABLE
-# =========================
+# ==========================================
+# KHỞI TẠO DANH SÁCH KHÁCH HÀNG
+# ==========================================
 
-create_table()
+if "customers" not in st.session_state:
+    st.session_state.customers = []
 
 
-# =========================
+# ==========================================
 # HÀM XUẤT EXCEL
-# =========================
+# ==========================================
 
-def export_excel(df):
+def export_excel():
+
+    df = pd.DataFrame(
+        st.session_state.customers
+    )
 
     output = BytesIO()
 
@@ -50,17 +48,9 @@ def export_excel(df):
     return output.getvalue()
 
 
-# =========================
-# KHỞI TẠO SESSION ADMIN
-# =========================
-
-if "admin_logged_in" not in st.session_state:
-    st.session_state.admin_logged_in = False
-
-
-# =========================
+# ==========================================
 # MENU
-# =========================
+# ==========================================
 
 st.sidebar.title("📋 MENU")
 
@@ -73,55 +63,52 @@ page = st.sidebar.radio(
 )
 
 
-# =====================================================
+# ==========================================
 # TRANG NHẬP KHÁCH HÀNG
-# =====================================================
+# ==========================================
 
 if page == "👤 Nhập khách hàng":
 
     st.title("👤 THÔNG TIN KHÁCH HÀNG")
 
     st.write(
-        "Vui lòng nhập thông tin khách hàng bên dưới."
+        "Vui lòng nhập thông tin khách hàng."
     )
 
     st.divider()
 
-    # =========================
-    # THÔNG TIN KHÁCH HÀNG
-    # =========================
 
-    col1, col2 = st.columns(2)
+    # --------------------------------------
+    # NHẬP THÔNG TIN
+    # --------------------------------------
 
-    with col1:
+    phone = st.text_input(
+        "📱 Số điện thoại",
+        placeholder="Nhập số điện thoại"
+    )
 
-        phone = st.text_input(
-            "📱 Số điện thoại",
-            placeholder="Nhập số điện thoại"
-        )
-
-    with col2:
-
-        name = st.text_input(
-            "👤 Tên khách hàng",
-            placeholder="Nhập tên khách hàng"
-        )
+    name = st.text_input(
+        "👤 Tên khách hàng",
+        placeholder="Nhập tên khách hàng"
+    )
 
     address = st.text_input(
         "📍 Địa chỉ",
-        placeholder="Nhập địa chỉ khách hàng"
+        placeholder="Nhập địa chỉ"
     )
 
     note = st.text_area(
         "📝 Ghi chú",
-        placeholder="Nhập ghi chú nếu có"
+        placeholder="Nhập ghi chú"
     )
+
 
     st.divider()
 
-    # =========================
+
+    # --------------------------------------
     # NÚT LƯU
-    # =========================
+    # --------------------------------------
 
     if st.button(
         "💾 LƯU THÔNG TIN",
@@ -129,66 +116,78 @@ if page == "👤 Nhập khách hàng":
         use_container_width=True
     ):
 
-        # Kiểm tra dữ liệu bắt buộc
-
         if phone.strip() == "":
-            st.error("❌ Vui lòng nhập số điện thoại.")
+
+            st.error(
+                "❌ Vui lòng nhập số điện thoại."
+            )
 
         elif name.strip() == "":
-            st.error("❌ Vui lòng nhập tên khách hàng.")
+
+            st.error(
+                "❌ Vui lòng nhập tên khách hàng."
+            )
 
         else:
 
-            add_customer(
-                phone=phone.strip(),
-                name=name.strip(),
-                address=address.strip(),
-                note=note.strip()
+            # Tạo khách hàng mới
+
+            customer = {
+                "Số điện thoại": phone.strip(),
+                "Tên khách hàng": name.strip(),
+                "Địa chỉ": address.strip(),
+                "Ghi chú": note.strip()
+            }
+
+
+            # Lưu vào session
+
+            st.session_state.customers.append(
+                customer
             )
+
 
             st.success(
-                "✅ Đã lưu thông tin khách hàng thành công!"
+                "✅ Đã lưu thông tin khách hàng!"
             )
 
-            st.balloons()
 
-
-# =====================================================
+# ==========================================
 # TRANG ADMIN
-# =====================================================
+# ==========================================
 
 elif page == "🔐 Admin":
 
-    st.title("🔐 ADMIN - QUẢN LÝ KHÁCH HÀNG")
+    st.title("🔐 ADMIN")
 
     st.divider()
 
 
-    # =================================================
-    # CHƯA ĐĂNG NHẬP
-    # =================================================
+    # ======================================
+    # ĐĂNG NHẬP
+    # ======================================
+
+    if "admin_logged_in" not in st.session_state:
+
+        st.session_state.admin_logged_in = False
+
 
     if not st.session_state.admin_logged_in:
 
-        st.subheader("🔑 Đăng nhập Admin")
-
         password = st.text_input(
-            "Mật khẩu",
+            "🔑 Mật khẩu",
             type="password"
         )
 
+
         if st.button(
-            "Đăng nhập",
+            "ĐĂNG NHẬP",
             type="primary"
         ):
 
             if password == "123456":
 
                 st.session_state.admin_logged_in = True
-
-                st.success(
-                    "✅ Đăng nhập thành công!"
-                )
 
                 st.rerun()
 
@@ -199,69 +198,74 @@ elif page == "🔐 Admin":
                 )
 
 
-    # =================================================
-    # ĐÃ ĐĂNG NHẬP
-    # =================================================
+    # ======================================
+    # ADMIN ĐÃ ĐĂNG NHẬP
+    # ======================================
 
     else:
 
-        # =========================
-        # HEADER ADMIN
-        # =========================
+        col1, col2 = st.columns(
+            [5, 1]
+        )
 
-        col1, col2 = st.columns([5, 1])
 
         with col1:
 
             st.subheader(
-                "📊 Danh sách khách hàng"
+                "📊 DANH SÁCH KHÁCH HÀNG"
             )
+
 
         with col2:
 
-            if st.button(
-                "🚪 Đăng xuất"
-            ):
+            if st.button("🚪 Đăng xuất"):
 
                 st.session_state.admin_logged_in = False
 
                 st.rerun()
 
 
-        # =========================
-        # LẤY DỮ LIỆU
-        # =========================
-
-        df = get_customers()
+        st.divider()
 
 
-        # =========================
-        # KIỂM TRA DATABASE
-        # =========================
+        # ==================================
+        # KIỂM TRA DỮ LIỆU
+        # ==================================
 
-        if df.empty:
+        if len(st.session_state.customers) == 0:
 
             st.info(
-                "📭 Chưa có thông tin khách hàng."
+                "📭 Chưa có khách hàng."
             )
+
 
         else:
 
-            # =========================
-            # THỐNG KÊ
-            # =========================
+            # ==============================
+            # CHUYỂN SANG DATAFRAME
+            # ==============================
+
+            df = pd.DataFrame(
+                st.session_state.customers
+            )
+
+
+            # ==============================
+            # TỔNG KHÁCH HÀNG
+            # ==============================
 
             st.metric(
                 "👥 Tổng số khách hàng",
                 len(df)
             )
 
+
             st.divider()
 
 
-            # =========================
-            # HIỂN THỊ BẢNG
-            # =========================
+            # ==============================
+            # HIỂN THỊ DANH SÁCH
+            # ==============================
 
             st.dataframe(
                 df,
@@ -269,14 +273,16 @@ elif page == "🔐 Admin":
                 hide_index=True
             )
 
+
             st.divider()
 
 
-            # =========================
+            # ==============================
             # XUẤT EXCEL
-            # =========================
+            # ==============================
 
-            excel_file = export_excel(df)
+            excel_file = export_excel()
+
 
             st.download_button(
                 label="📥 XUẤT FILE EXCEL",
@@ -288,34 +294,3 @@ elif page == "🔐 Admin":
                 ),
                 use_container_width=True
             )
-
-            st.divider()
-
-
-            # =========================
-            # XÓA KHÁCH HÀNG
-            # =========================
-
-            st.subheader(
-                "🗑️ Xóa khách hàng"
-            )
-
-            customer_id = st.number_input(
-                "Nhập STT khách hàng cần xóa",
-                min_value=1,
-                step=1,
-                value=1
-            )
-
-            if st.button(
-                "🗑️ XÓA KHÁCH HÀNG",
-                type="secondary"
-            ):
-
-                delete_customer(customer_id)
-
-                st.success(
-                    "✅ Đã xóa khách hàng."
-                )
-
-                st.rerun()
